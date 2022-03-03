@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import randToken from 'rand-token';
 
 import { UserModel } from './../../resources/user/user.model';
 import config from './../../config/index';
@@ -17,15 +18,21 @@ export const verifyToken = (token) =>
     });
   });
 
+export const getRefreshToken = () => {
+  return randToken.uid(16);
+};
+
 export const protect = async (req, res, next) => {
   if (!req.headers.authorization) {
-    return res.status(401).send({ message: 'Please login' }).end();
+    res.status(401).send({ message: 'Please login' }).end();
+    return;
   }
 
   const token = req.headers.authorization.split(' ')[1];
 
   if (!token) {
-    return res.status(401).send({ message: 'Please login' }).end();
+    res.status(401).send({ message: 'Please login' }).end();
+    return;
   }
 
   try {
@@ -37,6 +44,7 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).send({ message: error.message }).end();
+    res.status(401).send({ message: error.message }).end();
+    return;
   }
 };

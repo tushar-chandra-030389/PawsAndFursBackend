@@ -1,8 +1,10 @@
 import _ from 'lodash';
 
 import { UserModel } from './../user/user.model';
-import { newToken } from './../../utils/auth';
+import { RefreshTokenModel } from './../refreshToken/refreshToken.model';
+import { newToken, getRefreshToken } from './../../utils/auth';
 import { addUser } from './../user/user.controller';
+import dbErrorReader from './../../utils/errors/dbError.readers';
 
 export const signIn = async (req, res) => {
   const { email, password } = req.body;
@@ -13,7 +15,12 @@ export const signIn = async (req, res) => {
 
   try {
     const user = await UserModel.findOne({ email }).exec();
-
+    const refreshToken = getRefreshToken();
+    const refreshTokenInstance = new RefreshTokenModel({
+      token: refreshToken,
+      userId: user.id,
+    });
+    await refreshTokenInstance.save();
     if (!user) {
       res.status(401).send({ message: 'Invalid credentials' }).end();
     }
@@ -25,7 +32,9 @@ export const signIn = async (req, res) => {
     }
 
     const token = newToken(user);
-    res.status(201).send({ data: token });
+    res
+      .status(201)
+      .send({ data: { token, refreshToken: refreshTokenInstance.token } });
   } catch (error) {
     const dbError = dbErrorReader(error);
 
